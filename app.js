@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
+const e = require('express');
 
 // { email: "admin@email.com", name: "admin", password:"**hashed password**", isAdmin: true }.//the password must be:Rc123456!
 const USERS = [{ email: 'admin@email.com', name: 'admin', password: '**hashed password**', isAdmin: true }];
@@ -18,25 +19,47 @@ router.post('/users/register', async (req, res) => {
       INFORMATION.push({ email, info: `${user} info` });
       res.status(201).send('Register Success');
     }
-    console.log('INFORMATION', INFORMATION);
-    console.log('USERS', USERS);
   } catch (error) {
     res.status(500).json(error);
   }
 });
 
-router.post('/users/login', (req, res) => {
+router.post('/users/login', async (req, res) => {
   const { email, password } = req.body;
-  res.status(200).send('accessToken, refreshToken , email, name, isAdmin');
+  const userObj = findIfExists(email);
+  if (!userObj) {
+    res.status(404).send('cannot find user');
+  } else {
+    const userDetails = await passwordChecker(password, userObj);
+    if (userDetails) {
+      res.send(userDetails);
+    } else {
+      res.status(403).send('User or Password incorrect');
+    }
+  }
+  // res.status(200).send('accessToken, refreshToken , email, name, isAdmin');
 });
 
 module.exports = router;
 
 const findIfExists = email => {
-  for (let i of INFORMATION) {
+  for (let i of USERS) {
     if (i.email === email) {
-      return true;
+      return i;
     }
   }
   return false;
+};
+
+const passwordChecker = async (password, userObj) => {
+  try {
+    if (await bcrypt.compare(password, userObj.password)) {
+      return { email: userObj.email, name: userObj.name, isAdmin: userObj.isAdmin };
+    } else {
+      return false;
+    }
+  } catch (error) {
+    res.status(500).json(error);
+    return false;
+  }
 };

@@ -1,8 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
-const e = require('express');
-
+const jwt = require('jsonwebtoken');
 // { email: "admin@email.com", name: "admin", password:"**hashed password**", isAdmin: true }.//the password must be:Rc123456!
 const USERS = [{ email: 'admin@email.com', name: 'admin', password: '**hashed password**', isAdmin: true }];
 const INFORMATION = []; // {email: ${email}, info: "${name} info"}
@@ -32,7 +32,8 @@ router.post('/users/login', async (req, res) => {
   } else {
     const userDetails = await passwordChecker(password, userObj);
     if (userDetails) {
-      res.send(userDetails);
+      const accessToken = jwt.sign(userDetails, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '10s' });
+      res.json({ accessToken });
     } else {
       res.status(403).send('User or Password incorrect');
     }
@@ -63,3 +64,14 @@ const passwordChecker = async (password, userObj) => {
     return false;
   }
 };
+
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+  if (token == null) return res.sendStatus(401);
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+}

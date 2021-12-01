@@ -63,9 +63,23 @@ exports.refreshTokenFunc = (req, res) => {
     const accessToken = jwt.sign({ email: user.email }, process.env.ACCESS_TOKEN_SECRET, {
       expiresIn: '10s',
     });
-    res.status(200).send(user);
+    res.status(200).send({ accessToken });
     next();
   });
+};
+
+exports.logoutFunc = (req, res) => {
+  const refreshToken = req.body.token;
+  if (!refreshToken) {
+    return res.status(400).send('Refresh Token Required');
+  }
+  const refreshTokenIndex = REFRESHTOKENS.indexOf(refreshToken);
+  console.log(refreshTokenIndex);
+  if (refreshTokenIndex < 0) {
+    return res.status(400).send('Invalid Refresh Token');
+  }
+  REFRESHTOKENS.splice(refreshTokenIndex, 1);
+  res.status(200).send('User Logged Out Successfully');
 };
 
 const findIfExists = email => {

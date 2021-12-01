@@ -1,11 +1,7 @@
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-// { email: "admin@email.com", name: "admin", password:"**hashed password**", isAdmin: true }.//the password must be:Rc123456!
-const USERS = [{ email: 'admin@email.com', name: 'admin', password: '$2b$10$v8ilFSe6pzCtytQChZD3meE3HrG1jW2yXv0ThrUnq8kAoTpTowAYa', isAdmin: true }];
-const INFORMATION = []; // {email: ${email}, info: "${name} info"}
-const REFRESHTOKENS = [];
-
+const { USERS, INFORMATION, REFRESHTOKENS } = require('../db/db');
 exports.registerFunc = async (req, res) => {
   try {
     const { email, name, password } = req.body;
@@ -34,6 +30,7 @@ exports.loginFunc = async (req, res) => {
       const refreshToken = jwt.sign(userDetails, process.env.REFRESH_TOKEN_SECRET);
       userDetails.accessToken = accessToken;
       userDetails.refreshToken = refreshToken;
+      REFRESHTOKENS.push(refreshToken);
       res.json({ ...userDetails });
     } else {
       res.status(403).send('User or Password incorrect');
@@ -41,13 +38,33 @@ exports.loginFunc = async (req, res) => {
   }
 };
 
-exports.tokenValidateFunc = (req, res) => {
+exports.tokenValidateFunc = (req, res, next) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
   if (token == null) return res.status(401).send('Access Token Required');
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
     if (err) return res.status(403).send('Invalid Access Token');
+    req.user = user;
+    next();
     res.status(200).json({ valid: true });
+  });
+};
+
+exports.refreshTokenFunc = (req, res) => {
+  const refreshToken = req.body.token;
+  if (!refreshToken) {
+    return res.status(401).send('Refresh Token Required');
+  }
+  if (!REFRESHTOKENS.includes(refreshToken)) {
+    return res.status(403).send('Invalid Refresh Token');
+  }
+  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+    if (err) return res.status(403)('Invalid Refresh Token');
+    const accessToken = jwt.sign({ email: user.email }, process.env.ACCESS_TOKEN_SECRET, {
+      expiresIn: '10s',
+    });
+    res.status(200).send(user);
+    next();
   });
 };
 

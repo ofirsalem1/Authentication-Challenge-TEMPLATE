@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const router = express.Router();
+const router = express();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 // { email: "admin@email.com", name: "admin", password:"**hashed password**", isAdmin: true }.//the password must be:Rc123456!
@@ -33,7 +33,10 @@ router.post('/users/login', async (req, res) => {
     const userDetails = await passwordChecker(password, userObj);
     if (userDetails) {
       const accessToken = jwt.sign(userDetails, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '10s' });
-      res.json({ accessToken });
+      const refreshToken = jwt.sign(userDetails, process.env.REFRESH_TOKEN_SECRET);
+      userDetails.accessToken = accessToken;
+      userDetails.refreshToken = refreshToken;
+      res.json({ userDetails });
     } else {
       res.status(403).send('User or Password incorrect');
     }

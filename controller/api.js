@@ -13,11 +13,12 @@ exports.getInfoFunc = (req, res) => {
 };
 
 exports.getUsersDbFunc = (req, res) => {
-  console.log(req.user);
-  if (req.user.isAdmin) {
-    console.log('in', req.user);
-    return res.status(200).send({ USERS: [USERS] });
+  try {
+    if (req.user.isAdmin) {
+      return res.status(200).send(USERS);
+    }
+    res.status(400).send('No access');
+  } catch (error) {
+    console.log(error);
   }
-  console.log('out', req.user);
-  res.status(400).send('No access');
 };

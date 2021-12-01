@@ -26,7 +26,7 @@ exports.loginFunc = async (req, res) => {
   } else {
     const userDetails = await passwordChecker(password, userObj);
     if (userDetails) {
-      const accessToken = jwt.sign(userDetails, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '50s' });
+      const accessToken = jwt.sign(userDetails, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '10s' });
       const refreshToken = jwt.sign(userDetails, process.env.REFRESH_TOKEN_SECRET);
       userDetails.accessToken = accessToken;
       userDetails.refreshToken = refreshToken;

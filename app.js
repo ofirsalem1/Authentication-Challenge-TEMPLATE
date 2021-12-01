@@ -4,17 +4,18 @@ const router = express();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 // { email: "admin@email.com", name: "admin", password:"**hashed password**", isAdmin: true }.//the password must be:Rc123456!
-const USERS = [{ email: 'admin@email.com', name: 'admin', password: '**hashed password**', isAdmin: true }];
+const USERS = [{ email: 'admin@email.com', name: 'admin', password: '$2b$10$v8ilFSe6pzCtytQChZD3meE3HrG1jW2yXv0ThrUnq8kAoTpTowAYa', isAdmin: true }];
 const INFORMATION = []; // {email: ${email}, info: "${name} info"}
 const REFRESHTOKENS = [];
 
 router.post('/users/register', async (req, res) => {
   try {
     const { email, user, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
     if (findIfExists(email)) {
       res.status(409).send('user already exists');
     } else {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      console.log(hashedPassword);
       USERS.push({ email, name: user, password: hashedPassword, isAdmin: false });
       INFORMATION.push({ email, info: `${user} info` });
       res.status(201).send('Register Success');
@@ -41,7 +42,18 @@ router.post('/users/login', async (req, res) => {
       res.status(403).send('User or Password incorrect');
     }
   }
-  // res.status(200).send('accessToken, refreshToken , email, name, isAdmin');
+});
+
+router.post('/users/tokenValidate', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+  console.log(token);
+  if (token == null) return res.status(401).send('Access Token Required');
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+    if (err) return res.status(403).send('Invalid Access Token');
+    console.log(user);
+    res.status(200).json({ valid: true });
+  });
 });
 
 module.exports = router;
@@ -68,13 +80,13 @@ const passwordChecker = async (password, userObj) => {
   }
 };
 
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-  if (token == null) return res.sendStatus(401);
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
-    req.user = user;
-    next();
-  });
-}
+// function authenticateToken(req, res, next) {
+//   const authHeader = req.headers.authorization;
+//   const token = authHeader && authHeader.split(' ')[1];
+//   if (token == null) return res.sendStatus(401);
+//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+//     if (err) return res.sendStatus(403);
+//     req.user = user;
+//     next();
+//   });
+// }
